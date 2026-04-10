@@ -1,0 +1,14 @@
+public/
+  index.html
+  favicon.ico
+src/
+  components/
+    App.js
+    Header.js
+    Footer.js
+  styles/
+    App.css
+  index.js
+  App.test.js
+package.json
+README.md
