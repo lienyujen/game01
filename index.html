@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic HTML5 Game</title>
+    <style>
+        body {background-color: #f0f0f0; display: flex; justify-content: center; align-items: center; height: 100vh;}
+        canvas {border: 1px solid black;}
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const context = canvas.getContext('2d');
+
+        let gameLoop = () => {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            // Game Logic and Rendering goes here
+            requestAnimationFrame(gameLoop);
+        };
+
+        gameLoop();
+    </script>
+</body>
+</html>
