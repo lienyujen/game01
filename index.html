@@ -143,6 +143,7 @@
       const [numPlayers, setNumPlayers] = useState(2);
       const [startingScore, setStartingScore] = useState(301);
       const [soundEnabled, setSoundEnabled] = useState(true);
+      const [isDoubleOut, setIsDoubleOut] = useState(false); // 新增結鏢規則狀態，預設為 false
 
       const [players, setPlayers] = useState([]);
       const [activePlayerIndex, setActivePlayerIndex] = useState(0);
@@ -241,11 +242,23 @@
         const currentTotal = newDarts.reduce((sum, d) => sum + d.points, 0);
         const tentativeScore = turnStartScore - currentTotal;
 
-        if (tentativeScore < 0 || tentativeScore === 1 || (tentativeScore === 0 && !isDouble)) {
+        let isBust = false;
+        let isWin = false;
+
+        // 依據是否開啟 Double Out 套用不同判定邏輯
+        if (isDoubleOut) {
+          if (tentativeScore < 0 || tentativeScore === 1 || (tentativeScore === 0 && !isDouble)) isBust = true;
+          else if (tentativeScore === 0 && isDouble) isWin = true;
+        } else {
+          if (tentativeScore < 0) isBust = true;
+          else if (tentativeScore === 0) isWin = true;
+        }
+
+        if (isBust) {
           setTurnMessage('爆鏢 (Bust)!');
           if (soundEnabled) setTimeout(() => playSound('bust'), 300);
           setTimeout(() => endTurn(turnStartScore, newDarts, true), 2000);
-        } else if (tentativeScore === 0 && isDouble) {
+        } else if (isWin) {
           setTurnMessage('獲勝！');
           if (soundEnabled) setTimeout(() => playSound('win'), 300);
           
@@ -334,9 +347,9 @@
               </button>
               <Target className="w-24 h-24 text-blue-500 mx-auto mb-6" />
               <h1 className="text-5xl font-extrabold mb-4">標準飛鏢對戰</h1>
-              <p className="text-xl text-slate-400 mb-10 tracking-widest font-bold border-b border-slate-600 pb-6">01 賽制 (嚴格 Double Out 結鏢)</p>
+              <p className="text-xl text-slate-400 mb-8 tracking-widest font-bold border-b border-slate-600 pb-6">01 賽制對戰</p>
               
-              <div className="mb-10">
+              <div className="mb-8">
                 <h2 className="text-2xl font-bold text-slate-300 mb-4 flex items-center justify-center gap-2">
                   <Users className="w-8 h-8" /> 選擇遊玩人數
                 </h2>
@@ -348,7 +361,8 @@
                   ))}
                 </div>
               </div>
-              <div className="mb-12">
+
+              <div className="mb-8">
                 <h2 className="text-2xl font-bold text-slate-300 mb-4 flex items-center justify-center gap-2">
                   <Target className="w-8 h-8" /> 選擇起始分數
                 </h2>
@@ -360,6 +374,21 @@
                   ))}
                 </div>
               </div>
+
+              <div className="mb-12">
+                <h2 className="text-2xl font-bold text-slate-300 mb-4 flex items-center justify-center gap-2">
+                  <Trophy className="w-8 h-8" /> 結鏢規則
+                </h2>
+                <div className="flex justify-center gap-6">
+                  <button onClick={() => setIsDoubleOut(false)} className={`px-6 py-3 text-2xl font-bold rounded-2xl transition-all border-4 ${!isDoubleOut ? 'bg-purple-600 border-purple-400 text-white shadow-lg scale-110' : 'bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600'}`}>
+                    標準結鏢
+                  </button>
+                  <button onClick={() => setIsDoubleOut(true)} className={`px-6 py-3 text-2xl font-bold rounded-2xl transition-all border-4 ${isDoubleOut ? 'bg-purple-600 border-purple-400 text-white shadow-lg scale-110' : 'bg-slate-700 border-slate-600 text-slate-400 hover:bg-slate-600'}`}>
+                    Double Out
+                  </button>
+                </div>
+              </div>
+
               <button onClick={startGame} className="w-full py-6 bg-red-600 hover:bg-red-700 border-4 border-red-500 text-white text-4xl font-black rounded-2xl shadow-xl flex items-center justify-center gap-4 transition-transform active:scale-95">
                 <Play className="w-10 h-10" /> 開始對戰
               </button>
@@ -382,7 +411,7 @@
                   <Target className="text-red-500 w-8 h-8" /> {startingScore}
                 </h2>
                 <div className="flex gap-2">
-                  <span className="text-sm font-bold text-slate-400 tracking-widest bg-slate-900 px-3 py-1 rounded-full">Double Out</span>
+                  <span className="text-sm font-bold text-slate-400 tracking-widest bg-slate-900 px-3 py-1 rounded-full">{isDoubleOut ? 'Double Out' : 'Straight Out'}</span>
                   <span className="text-sm font-bold text-blue-400 tracking-widest bg-blue-900/30 px-3 py-1 rounded-full border border-blue-800">第 {currentRound} 局</span>
                 </div>
               </div>
