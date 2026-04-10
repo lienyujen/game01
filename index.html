@@ -17,6 +17,26 @@
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    
+    /* 結鏢閃爍特效 */
+    @keyframes checkoutPulse {
+      0% { 
+        fill: #fef08a !important; 
+        stroke: #ffffff !important; 
+        stroke-width: 3px !important; 
+        filter: drop-shadow(0 0 5px #fde047); 
+      }
+      100% { 
+        fill: #ca8a04 !important; 
+        stroke: #fef08a !important; 
+        stroke-width: 1px !important; 
+        filter: drop-shadow(0 0 0px transparent); 
+      }
+    }
+    .checkout-target {
+      animation: checkoutPulse 0.5s infinite alternate !important;
+      cursor: crosshair;
+    }
   </style>
 </head>
 <body>
@@ -143,11 +163,11 @@
       const [numPlayers, setNumPlayers] = useState(2);
       const [startingScore, setStartingScore] = useState(301);
       const [soundEnabled, setSoundEnabled] = useState(true);
-      const [isDoubleOut, setIsDoubleOut] = useState(false); // 新增結鏢規則狀態，預設為 false
+      const [isDoubleOut, setIsDoubleOut] = useState(false); 
 
       const [players, setPlayers] = useState([]);
       const [activePlayerIndex, setActivePlayerIndex] = useState(0);
-      const [currentRound, setCurrentRound] = useState(1); // 追蹤目前局數
+      const [currentRound, setCurrentRound] = useState(1); 
       const [turnStartScore, setTurnStartScore] = useState(0);
       const [turnDarts, setTurnDarts] = useState([]);
       const [turnMessage, setTurnMessage] = useState('');
@@ -162,7 +182,7 @@
           id: i, 
           name: `玩家 ${i + 1}`, 
           score: startingScore,
-          rounds: [] // 儲存每局的紀錄
+          rounds: [] 
         }));
         setPlayers(newPlayers);
         setActivePlayerIndex(0);
@@ -262,7 +282,6 @@
           setTurnMessage('獲勝！');
           if (soundEnabled) setTimeout(() => playSound('win'), 300);
           
-          // 記錄最後一局
           const updatedPlayers = [...players];
           updatedPlayers[activePlayerIndex].rounds.push({
             roundNum: currentRound,
@@ -285,7 +304,6 @@
         const updatedPlayers = [...players];
         const roundScore = isBust ? 0 : dartsThrown.reduce((sum, d) => sum + d.points, 0);
         
-        // 儲存這局的紀錄
         updatedPlayers[activePlayerIndex].rounds.push({
           roundNum: currentRound,
           darts: dartsThrown,
@@ -296,7 +314,6 @@
         updatedPlayers[activePlayerIndex].score = finalScoreForActivePlayer;
         setPlayers(updatedPlayers);
         
-        // 決定下一位玩家與是否進入新的一局
         let nextPlayerIdx = activePlayerIndex + 1;
         let nextRound = currentRound;
         
@@ -397,8 +414,22 @@
         );
       }
 
+      // 取得當前即時分數
       const currentTotalDarts = turnDarts.reduce((sum, d) => sum + d.points, 0);
       const currentDisplayScore = turnStartScore - currentTotalDarts;
+      const canPlay = gameState === 'playing' && turnMessage === '';
+
+      // 檢查某個區塊是否為「可結鏢」的目標區
+      const checkIsTarget = (points, isDoubleArea) => {
+        if (!canPlay) return false;
+        if (isDoubleOut) {
+          // Double Out 模式下，必須是兩倍區(包含內紅心50分)且剛好扣到0
+          return isDoubleArea && (currentDisplayScore === points);
+        } else {
+          // 標準模式下，只要能剛好扣到0即是目標
+          return currentDisplayScore === points;
+        }
+      };
 
       return (
         <div className="w-full h-full bg-slate-900 text-white flex flex-col md:flex-row font-sans overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
@@ -488,7 +519,7 @@
               })}
             </div>
 
-            {/* 本局即時操作面板 (簡化版，因為上面已經有紀錄了) */}
+            {/* 本局即時操作面板 */}
             <div className="mt-4 pt-4 border-t border-slate-700">
               <button onClick={undoLastDart} disabled={turnDarts.length === 0 || turnMessage !== ''} className="w-full py-4 bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600 rounded-xl border border-slate-500 text-xl font-bold flex items-center justify-center gap-3 transition-colors">
                 <Undo2 className="w-6 h-6" /> 復原上一鏢
@@ -532,18 +563,24 @@
                 const colorDoubleTreble = isRedGreen ? '#e11d48' : '#16a34a';
                 const colorSingle = isRedGreen ? '#111827' : '#fdf5e6';
 
+                // 判斷該區域是否為目前可以結鏢的目標
+                const isTargetDouble = checkIsTarget(sector * 2, true);
+                const isTargetOuterSingle = checkIsTarget(sector, false);
+                const isTargetTreble = checkIsTarget(sector * 3, false);
+                const isTargetInnerSingle = checkIsTarget(sector, false);
+
                 return (
                   <g key={`sector-${sector}`}>
-                    <path d={getWedgePath(RADIUS.DOUBLE_OUT, startA, endA)} fill={colorDoubleTreble} stroke="#d1d5db" strokeWidth="1.5" />
-                    <path d={getWedgePath(RADIUS.DOUBLE_IN, startA, endA)} fill={colorSingle} stroke="#d1d5db" strokeWidth="1.5" />
-                    <path d={getWedgePath(RADIUS.TREBLE_OUT, startA, endA)} fill={colorDoubleTreble} stroke="#d1d5db" strokeWidth="1.5" />
-                    <path d={getWedgePath(RADIUS.TREBLE_IN, startA, endA)} fill={colorSingle} stroke="#d1d5db" strokeWidth="1.5" />
+                    <path d={getWedgePath(RADIUS.DOUBLE_OUT, startA, endA)} fill={colorDoubleTreble} stroke="#d1d5db" strokeWidth="1.5" className={`transition-opacity ${isTargetDouble ? 'checkout-target' : 'hover:opacity-80'}`} />
+                    <path d={getWedgePath(RADIUS.DOUBLE_IN, startA, endA)} fill={colorSingle} stroke="#d1d5db" strokeWidth="1.5" className={`transition-opacity ${isTargetOuterSingle ? 'checkout-target' : 'hover:opacity-80'}`} />
+                    <path d={getWedgePath(RADIUS.TREBLE_OUT, startA, endA)} fill={colorDoubleTreble} stroke="#d1d5db" strokeWidth="1.5" className={`transition-opacity ${isTargetTreble ? 'checkout-target' : 'hover:opacity-80'}`} />
+                    <path d={getWedgePath(RADIUS.TREBLE_IN, startA, endA)} fill={colorSingle} stroke="#d1d5db" strokeWidth="1.5" className={`transition-opacity ${isTargetInnerSingle ? 'checkout-target' : 'hover:opacity-80'}`} />
                   </g>
                 );
               })}
 
-              <circle cx="300" cy="300" r={RADIUS.BULL_OUT} fill="#16a34a" stroke="#d1d5db" strokeWidth="1.5" />
-              <circle cx="300" cy="300" r={RADIUS.BULL_IN} fill="#e11d48" stroke="#d1d5db" strokeWidth="1.5" />
+              <circle cx="300" cy="300" r={RADIUS.BULL_OUT} fill="#16a34a" stroke="#d1d5db" strokeWidth="1.5" className={`transition-opacity ${checkIsTarget(25, false) ? 'checkout-target' : 'hover:opacity-80'}`} />
+              <circle cx="300" cy="300" r={RADIUS.BULL_IN} fill="#e11d48" stroke="#d1d5db" strokeWidth="1.5" className={`transition-opacity ${checkIsTarget(50, true) ? 'checkout-target' : 'hover:opacity-80'}`} />
 
               {SECTORS.map((sector, i) => {
                 const angleRad = (i * 18 - 90) * (Math.PI / 180);
