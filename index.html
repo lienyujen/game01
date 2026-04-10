@@ -327,6 +327,28 @@
           nextPlayerIdx = 0;
           nextRound = currentRound + 1;
         }
+
+        // --- 局數上限判定 ---
+        if (isDoubleOut) {
+          const limit = startingScore === 301 ? 10 : 15;
+          if (nextRound > limit) {
+            let bestPlayer = updatedPlayers[0];
+            let tiedPlayers = [updatedPlayers[0]];
+            for (let i = 1; i < numPlayers; i++) {
+              if (updatedPlayers[i].score < bestPlayer.score) {
+                bestPlayer = updatedPlayers[i];
+                tiedPlayers = [updatedPlayers[i]];
+              } else if (updatedPlayers[i].score === bestPlayer.score) {
+                tiedPlayers.push(updatedPlayers[i]);
+              }
+            }
+            const winnerObj = { ...bestPlayer, name: tiedPlayers.map(p => p.name).join(' & ') };
+            setWinner(winnerObj);
+            if (soundEnabled) setTimeout(() => playSound('win'), 300);
+            setGameState('over');
+            return;
+          }
+        }
         
         setActivePlayerIndex(nextPlayerIdx);
         setCurrentRound(nextRound);
@@ -372,8 +394,8 @@
                 {soundEnabled ? <Volume2 className="w-6 h-6 md:w-8 md:h-8 text-green-400" /> : <VolumeX className="w-6 h-6 md:w-8 md:h-8 text-red-400" />}
               </button>
               <Target className="w-16 h-16 md:w-24 md:h-24 text-blue-500 mx-auto mb-4 md:mb-6" />
-              <h1 className="text-3xl md:text-5xl font-extrabold mb-2 md:mb-4">標準飛鏢對戰</h1>
-              <p className="text-sm md:text-xl text-slate-400 mb-6 md:mb-8 tracking-widest font-bold border-b border-slate-600 pb-4 md:pb-6">01 賽制對戰</p>
+              <h1 className="text-3xl md:text-5xl font-extrabold mb-2 md:mb-4">飛標大戰</h1>
+              <p className="text-sm md:text-xl text-slate-400 mb-6 md:mb-8 tracking-widest font-bold border-b border-slate-600 pb-4 md:pb-6">請用軟式吸盤球開戰</p>
               
               <div className="mb-6 md:mb-8">
                 <h2 className="text-xl md:text-2xl font-bold text-slate-300 mb-3 md:mb-4 flex items-center justify-center gap-2">
@@ -416,7 +438,7 @@
               </div>
 
               <button onClick={startGame} className="w-full py-4 md:py-6 bg-red-600 hover:bg-red-700 border-4 border-red-500 text-white text-3xl md:text-4xl font-black rounded-2xl shadow-xl flex items-center justify-center gap-4 transition-transform active:scale-95">
-                <Play className="w-8 h-8 md:w-10 md:h-10" /> 開始對戰
+                <Play className="w-8 h-8 md:w-10 md:h-10" /> 開始
               </button>
             </div>
           </div>
@@ -524,6 +546,17 @@
             </div>
 
             <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-slate-700 shrink-0">
+              <div className="flex justify-center gap-2 md:gap-3 mb-3 md:mb-4">
+                {[0, 1, 2].map(i => {
+                  const dart = turnDarts[i];
+                  return (
+                    <div key={i} className={`w-12 h-12 md:w-16 md:h-16 rounded-xl flex flex-col items-center justify-center border-2 md:border-4 ${dart ? (dart.points === 0 ? 'bg-slate-900 border-slate-500 text-slate-400' : 'bg-white border-slate-300 text-slate-800') : 'bg-slate-800 border-slate-600 text-slate-600'}`}>
+                      <span className={`text-xl md:text-2xl font-black ${dart && dart.points === 0 ? 'text-red-500' : ''}`}>{dart ? dart.points : '-'}</span>
+                      {dart && <span className="text-[8px] md:text-[10px] font-bold tracking-widest mt-0 md:mt-1 text-slate-500">{getDartLabel(dart)}</span>}
+                    </div>
+                  )
+                })}
+              </div>
               <button onClick={undoLastDart} disabled={turnDarts.length === 0 || turnMessage !== ''} className="w-full py-3 md:py-4 bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600 rounded-xl border border-slate-500 text-lg md:text-xl font-bold flex items-center justify-center gap-2 md:gap-3 transition-colors">
                 <Undo2 className="w-5 h-5 md:w-6 md:h-6" /> 復原上一鏢
               </button>
@@ -541,6 +574,9 @@
             {winner && (
               <div className="absolute z-50 inset-0 bg-black/90 flex flex-col items-center justify-center backdrop-blur-md">
                 <Trophy className="w-32 h-32 md:w-48 md:h-48 text-yellow-400 mb-4 md:mb-8 animate-bounce" />
+                {isDoubleOut && currentRound > (startingScore === 301 ? 10 : 15) && (
+                  <p className="text-2xl md:text-4xl text-slate-300 font-bold mb-2 md:mb-4">局數已達上限</p>
+                )}
                 <h2 className="text-5xl md:text-9xl font-black text-white mb-4 md:mb-6 text-center">{winner.name} <span className="text-yellow-400">獲勝！</span></h2>
                 <button onClick={resetGame} className="mt-6 md:mt-12 px-8 py-4 md:px-12 md:py-6 bg-blue-600 hover:bg-blue-700 text-2xl md:text-4xl font-bold rounded-xl md:rounded-2xl shadow-xl flex items-center gap-3 md:gap-4 transition-transform active:scale-95">
                   <RotateCcw className="w-8 h-8 md:w-10 md:h-10" /> 再玩一局
